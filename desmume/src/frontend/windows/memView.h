@@ -43,7 +43,7 @@ public:
 	u8 memory[0x100];
 	using CToolWindow::Refresh;
 	void Refresh();
-	void Refresh(HWND handle, BOOL isdirty);
+	void Refresh(BOOL isdirty);
 
 	HFONT font;
 

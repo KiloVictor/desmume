@@ -238,7 +238,7 @@ CMemView::~CMemView()
 	UnregWndClass(L"MemView_ViewBox");
 }
 
-void CMemView::Refresh(HWND handle, BOOL isdirty)
+void CMemView::Refresh(BOOL isdirty)
 {
 	u8 temp[256];
 	int i;
@@ -253,13 +253,13 @@ void CMemView::Refresh(HWND handle, BOOL isdirty)
 	}
 	if (isdirty)
 	{
-		InvalidateRect(handle, NULL, FALSE);
+		InvalidateRect(GetDlgItem(hWnd, IDC_MEMVIEWBOX), NULL, FALSE);
 		isdirty = FALSE;
 	}
 }
 void CMemView::Refresh()
 {
-	Refresh(GetDlgItem(hWnd, IDC_MEMVIEWBOX), FALSE);
+	Refresh(FALSE);
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -391,7 +391,7 @@ INT_PTR CALLBACK MemView_DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			wnd->selAddress = wnd->address + (wnd->address & 0x0000000F);
 			wnd->selPart = 0;
 			wnd->selNewVal = 0x00000000;
-			wnd->Refresh(hDlg, TRUE);
+			wnd->Refresh(TRUE);
 			wnd->SetFocus();
 		}
 		return 1;
@@ -445,7 +445,7 @@ INT_PTR CALLBACK MemView_DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 				wnd->SetTitle(region.longname);
 
 				wnd->SetFocus();
-				wnd->Refresh(hDlg, TRUE);
+				wnd->Refresh(TRUE);
 			}
 			return 1;
 
@@ -460,7 +460,7 @@ INT_PTR CALLBACK MemView_DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 				wnd->selNewVal = 0x00000000;
 
 				wnd->SetFocus();
-				wnd->Refresh(hDlg, TRUE);
+				wnd->Refresh(TRUE);
 			}
 			return 1;
 
@@ -548,7 +548,7 @@ INT_PTR CALLBACK MemView_DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 
 				SetScrollPos(GetDlgItem(hDlg, IDC_MEMVIEWBOX), SB_VERT, (((wnd->address - region.hardwareAddress) >> 4) & 0x000FFFFF), TRUE);
-				wnd->Refresh(hDlg, TRUE);
+				wnd->Refresh(TRUE);
 				wnd->SetFocus();
 			}
 			return 1;
@@ -697,12 +697,12 @@ INT_PTR CALLBACK MemView_DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			return 1;
 
 		case IDC_BIG_ENDIAN:
-			wnd->Refresh(hDlg, TRUE);
+			wnd->Refresh(TRUE);
 			wnd->SetFocus();
 			return 1;
 
 		case IDC_FULL_CHARS:
-			wnd->Refresh(hDlg, TRUE);
+			wnd->Refresh(TRUE);
 			wnd->SetFocus();
 			return 1;
 
@@ -1157,7 +1157,7 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 			ReleaseDC(hCtl, hdc);
 
 			SetFocus(hCtl);				/* Required to receive keyboard messages */
-			wnd->Refresh(hCtl, TRUE);
+			wnd->Refresh(TRUE);
 		}
 		return 1;
 	case WM_ENTERMENULOOP: SPU_Pause(1); return 1;
@@ -1330,7 +1330,7 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 				wnd->address += 16;
 			
 			SetScrollPos(hCtl, SB_VERT, (wnd->address - region.hardwareAddress) >> 4, TRUE);
-			wnd->Refresh(hCtl, TRUE);
+			wnd->Refresh(TRUE);
 		}
 		return 1;
 
@@ -1392,7 +1392,7 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 					}
 				}
 			}
-			wnd->Refresh(hCtl, TRUE);
+			wnd->Refresh(TRUE);
 		}
 		return 1;
 
@@ -1446,7 +1446,7 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 			}
 
 			SetScrollPos(hCtl, SB_VERT, (((wnd->address - region.hardwareAddress) >> 4) & 0x000FFFFF), TRUE);
-			wnd->Refresh(hCtl, TRUE);
+			wnd->Refresh(TRUE);
 		}
 		return 1;
 	}
