@@ -40,6 +40,11 @@ public:
 	CMemView(MemRegionType memRegion = MEMVIEW_ARM9, u32 start_address = 0xFFFFFFFF);
 	~CMemView();
 
+	u8 memory[0x100];
+	using CToolWindow::Refresh;
+	void Refresh();
+	void Refresh(HWND handle, BOOL isdirty);
+
 	HFONT font;
 
 	u32 region;

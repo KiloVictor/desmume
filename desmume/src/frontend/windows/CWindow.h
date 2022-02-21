@@ -132,7 +132,7 @@ public:
 
 	// Refresh()
 	// Refreshes the window. Called by RefreshAllToolWindows().
-	void Refresh() { InvalidateRect(hWnd, NULL, FALSE); }
+	virtual void Refresh() { InvalidateRect(hWnd, NULL, FALSE); }
 
 	// SetFocus
 	void SetFocus() { ::SetFocus(hWnd); }
