@@ -25,6 +25,8 @@
 #include "NDSSystem.h"
 #include "emufile.h"
 #include "MMU.h"
+#include "SPU.h"
+#include "throttle.h"
 #include "debug.h"
 
 #include "resource.h"
@@ -34,6 +36,10 @@
 using namespace std;
 
 #define MAX_ADDRESS_SAVE 20
+#define ID_COPY_ADDRESS 50001
+#define ID_COPY_VALUE_UNSIGNED 50002
+#define ID_COPY_VALUE_SIGNED 50003
+#define ID_COPY_VALUE_HEX 50004
 
 typedef u32 HWAddressType;
 
@@ -1154,6 +1160,75 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 			wnd->Refresh(hCtl, TRUE);
 		}
 		return 1;
+	case WM_ENTERMENULOOP: SPU_Pause(1); return 1;
+	case WM_EXITMENULOOP: SPU_Pause(0); AutoFrameSkip_IgnorePreviousDelay(); return 1;
+	case WM_CONTEXTMENU:
+		{
+			HMENU hCopySubMenu = CreatePopupMenu();
+			HMENU hCopyMenu = CreatePopupMenu();
+			if (!hCopyMenu || !hCopySubMenu) return 1;
+			AppendMenu(hCopySubMenu, MF_STRING, ID_COPY_VALUE_HEX, "Hexadecimal");
+			AppendMenu(hCopySubMenu, MF_STRING, ID_COPY_VALUE_UNSIGNED, "Unsigned");
+			AppendMenu(hCopySubMenu, MF_STRING, ID_COPY_VALUE_SIGNED, "Signed");
+			AppendMenu(hCopyMenu, MF_STRING, ID_COPY_ADDRESS, "Copy Address");
+			AppendMenu(hCopyMenu, MF_POPUP, (UINT_PTR)hCopySubMenu , "Copy Value As...");
+			int x, y;
+			x = LOWORD(lParam);
+			y = HIWORD(lParam);
+			TrackPopupMenu(hCopyMenu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_LEFTBUTTON | TPM_NOANIMATION, x, y, 0, hCtl, NULL);
+			DestroyMenu(hCopyMenu);
+		}
+		return 1;
+
+	case WM_COMMAND:
+		{
+			switch (LOWORD(wParam))
+			{
+			case ID_COPY_ADDRESS:
+			case ID_COPY_VALUE_UNSIGNED:
+			case ID_COPY_VALUE_SIGNED:
+			case ID_COPY_VALUE_HEX:
+				OpenClipboard(NULL);
+				EmptyClipboard();
+				HGLOBAL clipdata = GlobalAlloc(GMEM_MOVEABLE, 16);
+				if (clipdata != NULL)
+				{
+					LPSTR copyaddr = (LPSTR)GlobalLock(clipdata);
+					u8 copymem[4];
+					MMU_DumpMemBlock(wnd->region, wnd->selAddress, 4, copymem);
+					if (copyaddr != NULL)
+					{
+						ZeroMemory(copyaddr, 16);
+						switch (LOWORD(wParam))
+						{
+						case ID_COPY_ADDRESS: sprintf(copyaddr, "%08X", wnd->selAddress); break;
+						case ID_COPY_VALUE_UNSIGNED:
+							switch (wnd->viewMode)
+							{
+							case 0: sprintf(copyaddr, "%u", T1ReadByte(copymem, 0)); break;
+							case 1: sprintf(copyaddr, "%u", T1ReadWord(copymem, 0)); break;
+							case 2: sprintf(copyaddr, "%u", T1ReadLong(copymem, 0)); break;
+							}
+							break;
+						case ID_COPY_VALUE_HEX:
+							switch (wnd->viewMode)
+							{
+							case 0: sprintf(copyaddr, "%02X", T1ReadByte(copymem, 0)); break;
+							case 1: sprintf(copyaddr, "%04X", T1ReadWord(copymem, 0)); break;
+							case 2: sprintf(copyaddr, "%08X", T1ReadLong(copymem, 0)); break;
+							}
+							break;
+						}
+					}
+					GlobalUnlock(clipdata);
+					SetClipboardData(CF_TEXT, clipdata);
+					GlobalFree(clipdata);
+				}
+				CloseClipboard();
+				break;
+			}
+		}
+		return 1;
 
 	case WM_KEYDOWN:
 		{
@@ -1215,7 +1290,14 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 							if (copyaddr != NULL)
 							{
 								ZeroMemory(copyaddr, 16);
-								sprintf(copyaddr, "%08x", wnd->selAddress);
+								u8 copymem[4];
+								MMU_DumpMemBlock(wnd->region, wnd->selAddress, 4, copymem);
+								switch (wnd->viewMode)
+								{
+								case 0: sprintf(copyaddr, "%02x", T1ReadByte(copymem, 0)); break;
+								case 1: sprintf(copyaddr, "%04x", T1ReadWord(copymem, 0)); break;
+								case 2: sprintf(copyaddr, "%08x", T1ReadLong(copymem, 0)); break;
+								}
 							}
 							GlobalUnlock(clipdata);
 							SetClipboardData(CF_TEXT, clipdata);
