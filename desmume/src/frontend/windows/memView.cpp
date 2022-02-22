@@ -282,11 +282,8 @@ INT_PTR CALLBACK EditAddrProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam)
 	return CallWindowProc((WNDPROC)oldEditAddrProc, hWnd, msg, wParam, lParam);
 }
 
-void MemView_Paint(CMemView* wnd, HWND hCtl, WPARAM wParam, LPARAM lParam) {
+void MemView_UpdateBP(CMemView* wnd, HWND hCtl) {
 
-	PAINTSTRUCT ps;
-
-	BeginPaint(hCtl, &ps);
 	// update text...
 	char str[16];
 	for (int i = 0; i < 8; ++i) {
@@ -317,7 +314,6 @@ void MemView_Paint(CMemView* wnd, HWND hCtl, WPARAM wParam, LPARAM lParam) {
 	sprintf(str, "%02i", WBPOffs);
 	SetWindowText(GetDlgItem(hCtl, IDC_MEMWBPOFFS), str);
 
-	EndPaint(hCtl, &ps);
 }
 
 INT_PTR CALLBACK MemView_DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -394,10 +390,6 @@ INT_PTR CALLBACK MemView_DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			wnd->Refresh(TRUE);
 			wnd->SetFocus();
 		}
-		return 1;
-
-	case WM_PAINT:
-		MemView_Paint(wnd, hDlg, wParam, lParam);
 		return 1;
 
 	case WM_DESTROY:
@@ -712,7 +704,7 @@ INT_PTR CALLBACK MemView_DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			GetDlgItemText(hDlg, IDC_MEMBPTARG, str, 16);
 			memReadBreakPoints.push_back(strtol(str, NULL, 16));
 			wnd->SetFocus();
-			InvalidateRect(hDlg, NULL, FALSE);
+			MemView_UpdateBP(wnd, hDlg);
 			return 1;
 		}
 		case IDC_WRITEBP:
@@ -721,7 +713,7 @@ INT_PTR CALLBACK MemView_DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 			GetDlgItemText(hDlg, IDC_MEMBPTARG, str, 16);
 			memWriteBreakPoints.push_back(strtol(str, NULL, 16));
 			wnd->SetFocus();
-			InvalidateRect(hDlg, NULL, FALSE);
+			MemView_UpdateBP(wnd, hDlg);
 			return 1;
 		}
 		case IDC_DELREADBP: {
@@ -729,7 +721,7 @@ INT_PTR CALLBACK MemView_DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 				memReadBreakPoints.erase(memReadBreakPoints.begin() + RBPOffs);
 			}
 			wnd->SetFocus();
-			InvalidateRect(hDlg, NULL, FALSE);
+			MemView_UpdateBP(wnd, hDlg);
 			return 1;
 		}
 		case IDC_DELWRITEBP: {
@@ -737,31 +729,31 @@ INT_PTR CALLBACK MemView_DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 				memWriteBreakPoints.erase(memWriteBreakPoints.begin() + WBPOffs);
 			}
 			wnd->SetFocus();
-			InvalidateRect(hDlg, NULL, FALSE);
+			MemView_UpdateBP(wnd, hDlg);
 			return 1;
 		}
 		case IDC_MEMRBPUP: {
 			RBPOffs = max(0, RBPOffs - 1);
 			wnd->SetFocus();
-			InvalidateRect(hDlg, NULL, FALSE);
+			MemView_UpdateBP(wnd, hDlg);
 			return 1;
 		}
 		case IDC_MEMRBPDOWN: {
 			RBPOffs += 1;
 			wnd->SetFocus();
-			InvalidateRect(hDlg, NULL, FALSE);
+			MemView_UpdateBP(wnd, hDlg);
 			return 1;
 		}
 		case IDC_MEMWBPUP: {
 			WBPOffs = max(0, WBPOffs - 1);
 			wnd->SetFocus();
-			InvalidateRect(hDlg, NULL, FALSE);
+			MemView_UpdateBP(wnd, hDlg);
 			return 1;
 		}
 		case IDC_MEMWBPDOWN: {
 			WBPOffs += 1;
 			wnd->SetFocus();
-			InvalidateRect(hDlg, NULL, FALSE);
+			MemView_UpdateBP(wnd, hDlg);
 			return 1;
 		}
 		}
