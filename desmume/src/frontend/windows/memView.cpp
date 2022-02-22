@@ -1209,6 +1209,14 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 							case 2: sprintf(copyaddr, "%u", T1ReadLong(copymem, 0)); break;
 							}
 							break;
+						case ID_COPY_VALUE_SIGNED:
+							switch (wnd->viewMode)
+							{
+							case 0: sprintf(copyaddr, "%i", T1ReadByte(copymem, 0)); break;
+							case 1: sprintf(copyaddr, "%i", T1ReadWord(copymem, 0)); break;
+							case 2: sprintf(copyaddr, "%i", T1ReadLong(copymem, 0)); break;
+							}
+							break;
 						case ID_COPY_VALUE_HEX:
 							switch (wnd->viewMode)
 							{
@@ -1221,7 +1229,6 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 					}
 					GlobalUnlock(clipdata);
 					SetClipboardData(CF_TEXT, clipdata);
-					GlobalFree(clipdata);
 				}
 				CloseClipboard();
 				break;
@@ -1300,7 +1307,6 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 							}
 							GlobalUnlock(clipdata);
 							SetClipboardData(CF_TEXT, clipdata);
-							GlobalFree(clipdata);
 						}
 						CloseClipboard();
 					}
