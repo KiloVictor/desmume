@@ -17,6 +17,7 @@
 */
 
 #include "memView.h"
+#include "main.h"
 
 #include <algorithm>
 #include <windowsx.h>
@@ -100,6 +101,11 @@ u8 memRead8 (MemRegionType regionType, HWAddressType address)
 
 void memRead(u8* buffer, MemRegionType regionType, HWAddressType address, size_t size)
 {
+	if (!romloaded)
+	{
+		ZeroMemory(buffer, size);
+		return;
+	}
 	switch (regionType)
 	{
 	case MEMVIEW_ARM9:
@@ -125,7 +131,7 @@ bool memIsAvailable(MemRegionType regionType, HWAddressType address)
 {
 	if (regionType == MEMVIEW_ARM7 && (address & 0xFFFF0000) == 0x04800000)
 		return false;
-
+	
 	if (regionType == MEMVIEW_ROM && (address > gameInfo.romsize))
 		return false;
 
@@ -134,6 +140,7 @@ bool memIsAvailable(MemRegionType regionType, HWAddressType address)
 
 void memWrite8(MemRegionType regionType, HWAddressType address, u8 value)
 {
+	if (!romloaded) return;
 	switch (regionType)
 	{
 	case MEMVIEW_ARM9:
@@ -158,6 +165,7 @@ void memWrite8(MemRegionType regionType, HWAddressType address, u8 value)
 
 void memWrite16(MemRegionType regionType, HWAddressType address, u16 value)
 {
+	if (!romloaded) return;
 	switch (regionType)
 	{
 	case MEMVIEW_ARM9:
@@ -182,6 +190,7 @@ void memWrite16(MemRegionType regionType, HWAddressType address, u16 value)
 
 void memWrite32(MemRegionType regionType, HWAddressType address, u32 value)
 {
+	if (!romloaded) return;
 	switch (regionType)
 	{
 	case MEMVIEW_ARM9:
@@ -1262,7 +1271,7 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 				case VK_NEXT:	offset += 0x100; offset2 += 0x100; break;
 
 				case VK_HOME:
-					if (GetKeyState(VK_LCONTROL) || GetKeyState(VK_RCONTROL))
+					if (GetKeyState(VK_CONTROL) & 0x8000)
 					{
 						wnd->address = region.hardwareAddress;
 						wnd->selAddress = wnd->address;
@@ -1279,7 +1288,7 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 				break;
 
 				case VK_END:
-					if (GetKeyState(VK_LCONTROL) || GetKeyState(VK_RCONTROL))
+					if (GetKeyState(VK_CONTROL) & 0x8000)
 					{
 						wnd->address = (region.hardwareAddress + region.size - 0x100);
 						wnd->selAddress = wnd->address;
@@ -1294,9 +1303,9 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 						wnd->selNewVal = 0x00000000;
 					}
 				break;
-
+				
 				case 0x43: // Key_C
-					if (GetKeyState(VK_LCONTROL) || GetKeyState(VK_RCONTROL))
+					if (GetKeyState(VK_CONTROL) & 0x8000)
 					{
 						SendMessage(hCtl, WM_COMMAND, (WPARAM)ID_COPY_VALUE_HEX, (LPARAM)hCtl);
 					}
@@ -1306,8 +1315,8 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 					return 0;
 			}
 
-			s64 addr = (s64)(wnd->selAddress + offset);
-			s64 addr2 = (s64)(wnd->address + offset2);
+			s64 addr = (s64)wnd->selAddress + offset;
+			s64 addr2 = (s64)wnd->address + offset2;
 
 			if (addr < region.hardwareAddress) return 1;
 			if (addr2 < region.hardwareAddress) return 1;
@@ -1426,8 +1435,8 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 					si.fMask = SIF_TRACKPOS;
 
 					GetScrollInfo(hCtl, SB_VERT, &si);
-
-					wnd->address = min((u32)addrMax, (wnd->address + ((si.nTrackPos - firstpos) * 16)));
+					//wnd->address = min((u32)addrMax, (wnd->address + ((si.nTrackPos - firstpos) * 16)));
+					wnd->address = min(addrMin + ((u64)si.nTrackPos << 4), (u64)addrMax);
 				}
 				break;
 			}
