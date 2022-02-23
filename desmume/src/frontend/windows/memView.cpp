@@ -448,6 +448,7 @@ INT_PTR CALLBACK MemView_DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 				wnd->sel = TRUE;
 				//wnd->selAddress = 0x00000000;
+				wnd->selAddress = (wnd->selAddress >> wnd->viewMode) << wnd->viewMode;
 				wnd->selPart = 0;
 				wnd->selNewVal = 0x00000000;
 
@@ -1166,11 +1167,11 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 			HMENU hCopySubMenu = CreatePopupMenu();
 			HMENU hCopyMenu = CreatePopupMenu();
 			if (!hCopyMenu || !hCopySubMenu) return 1;
-			AppendMenu(hCopySubMenu, MF_STRING, ID_COPY_VALUE_HEX, "Hexadecimal");
+			AppendMenu(hCopySubMenu, MF_STRING, ID_COPY_VALUE_HEX, "Hex");
 			AppendMenu(hCopySubMenu, MF_STRING, ID_COPY_VALUE_UNSIGNED, "Unsigned");
 			AppendMenu(hCopySubMenu, MF_STRING, ID_COPY_VALUE_SIGNED, "Signed");
 			AppendMenu(hCopyMenu, MF_STRING, ID_COPY_ADDRESS, "Copy Address");
-			AppendMenu(hCopyMenu, MF_POPUP, (UINT_PTR)hCopySubMenu , "Copy Value As...");
+			AppendMenu(hCopyMenu, MF_POPUP, (UINT_PTR)hCopySubMenu , "Copy As...");
 			int x, y;
 			x = LOWORD(lParam);
 			y = HIWORD(lParam);
@@ -1193,8 +1194,18 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 				if (clipdata != NULL)
 				{
 					LPSTR copyaddr = (LPSTR)GlobalLock(clipdata);
-					u8 copymem[4];
-					MMU_DumpMemBlock(wnd->region, wnd->selAddress, 4, copymem);
+					int size = 1 << wnd->viewMode;
+					u8 *copymem = new u8[size];
+					MMU_DumpMemBlock(wnd->region, wnd->selAddress, size, copymem);
+					if (Button_GetCheck(GetDlgItem(wnd->hWnd, IDC_BIG_ENDIAN)))
+					{
+						for (int i = 0; i < size >> 1; i++)
+						{
+							copymem[i] -= copymem[size - 1 - i];
+							copymem[size - 1 - i] += copymem[i];
+							copymem[i] = copymem[size - 1 - i] - copymem[i];
+						}
+					}
 					if (copyaddr != NULL)
 					{
 						ZeroMemory(copyaddr, 16);
@@ -1212,9 +1223,9 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 						case ID_COPY_VALUE_SIGNED:
 							switch (wnd->viewMode)
 							{
-							case 0: sprintf(copyaddr, "%i", T1ReadByte(copymem, 0)); break;
-							case 1: sprintf(copyaddr, "%i", T1ReadWord(copymem, 0)); break;
-							case 2: sprintf(copyaddr, "%i", T1ReadLong(copymem, 0)); break;
+							case 0: sprintf(copyaddr, "%i", (s8)T1ReadByte(copymem, 0)); break;
+							case 1: sprintf(copyaddr, "%i", (s16)T1ReadWord(copymem, 0)); break;
+							case 2: sprintf(copyaddr, "%i", (s32)T1ReadLong(copymem, 0)); break;
 							}
 							break;
 						case ID_COPY_VALUE_HEX:
@@ -1287,28 +1298,7 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 				case 0x43: // Key_C
 					if (GetKeyState(VK_LCONTROL) || GetKeyState(VK_RCONTROL))
 					{
-						OpenClipboard(NULL);
-						EmptyClipboard();
-						HGLOBAL clipdata = GlobalAlloc(GMEM_MOVEABLE, 16);
-						if (clipdata != NULL)
-						{
-							LPSTR copyaddr = (LPSTR)GlobalLock(clipdata);
-							if (copyaddr != NULL)
-							{
-								ZeroMemory(copyaddr, 16);
-								u8 copymem[4];
-								MMU_DumpMemBlock(wnd->region, wnd->selAddress, 4, copymem);
-								switch (wnd->viewMode)
-								{
-								case 0: sprintf(copyaddr, "%02x", T1ReadByte(copymem, 0)); break;
-								case 1: sprintf(copyaddr, "%04x", T1ReadWord(copymem, 0)); break;
-								case 2: sprintf(copyaddr, "%08x", T1ReadLong(copymem, 0)); break;
-								}
-							}
-							GlobalUnlock(clipdata);
-							SetClipboardData(CF_TEXT, clipdata);
-						}
-						CloseClipboard();
+						SendMessage(hCtl, WM_COMMAND, (WPARAM)ID_COPY_VALUE_HEX, (LPARAM)hCtl);
 					}
 					break;
 
