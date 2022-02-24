@@ -69,6 +69,7 @@ static MemoryList s_memoryRegions;
 static HWND gAddrText = NULL;
 static LONG_PTR oldEditAddrProc = NULL;
 static HWND gAddress = NULL;
+static INT accDelta = 0;
 
 //////////////////////////////////////////////////////////////////////////////
 
@@ -1186,6 +1187,27 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 			y = GET_Y_LPARAM(lParam);
 			TrackPopupMenu(hCopyMenu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_LEFTBUTTON | TPM_NOANIMATION, x, y, 0, hCtl, NULL);
 			DestroyMenu(hCopyMenu);
+		}
+		return 1;
+
+	case WM_MOUSEWHEEL:
+		{
+			SHORT delta = GET_WHEEL_DELTA_WPARAM(wParam);
+			SHORT lines;
+			MemViewRegion& region = s_memoryRegions[wnd->region];
+			HWAddressType addrMin = (region.hardwareAddress) & 0xFFFFFF00;
+			HWAddressType addrMax = (region.hardwareAddress + region.size - 1) & 0xFFFFFF00;
+			accDelta += delta;
+			if (accDelta >= WHEEL_DELTA || accDelta <= -WHEEL_DELTA)
+			{
+				lines = accDelta / -WHEEL_DELTA;
+				accDelta -= -WHEEL_DELTA * lines;
+				if (lines < 0 && addrMin - 0x10 * lines > wnd->address) wnd->address = addrMin;
+				else if (lines > 0 && addrMax - 0x10 * lines < wnd->address) wnd->address = addrMax;
+				else wnd->address += lines * 0x10;
+				SetScrollPos(hCtl, SB_VERT, ((wnd->address - region.hardwareAddress) >> 4), TRUE);
+				wnd->Refresh(TRUE);
+			}
 		}
 		return 1;
 
