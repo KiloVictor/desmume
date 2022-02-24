@@ -1048,7 +1048,7 @@ LRESULT MemView_ViewBoxPaint(CMemView* wnd, HWND hCtl, WPARAM wParam, LPARAM lPa
 	{
 		case 2: 
 			u8 smallbuf[4];
-			MMU_DumpMemBlock(wnd->region, wnd->selAddress, 4, smallbuf);
+			memRead(smallbuf, (MemRegionType)wnd->region, wnd->selAddress, 4);
 			sprintf(textbuf,"%f",((s32)T1ReadLong(smallbuf,0))/4096.0f); 
 			break;
 		default: break;
@@ -1205,7 +1205,7 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 					LPSTR copyaddr = (LPSTR)GlobalLock(clipdata);
 					int size = 1 << wnd->viewMode;
 					u8 *copymem = new u8[size];
-					MMU_DumpMemBlock(wnd->region, wnd->selAddress, size, copymem);
+					memRead(copymem, (MemRegionType)wnd->region, wnd->selAddress, size);
 					if (Button_GetCheck(GetDlgItem(wnd->hWnd, IDC_BIG_ENDIAN)))
 					{
 						for (int i = 0; i < size >> 1; i++)
