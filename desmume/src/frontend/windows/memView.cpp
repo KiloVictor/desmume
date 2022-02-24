@@ -1106,8 +1106,8 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 			font = (HFONT)SelectObject(hdc, wnd->font);
 			GetTextExtentPoint32(hdc, " ", 1, &fontsize);
 			
-			x = LOWORD(lParam);
-			y = HIWORD(lParam);
+			x = GET_X_LPARAM(lParam);
+			y = GET_Y_LPARAM(lParam);
 
 			if((x >= ((fontsize.cx * 8) + 5)) && (y >= (fontsize.cy + 3)))
 			{
@@ -1182,8 +1182,8 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 			AppendMenu(hCopyMenu, MF_STRING, ID_COPY_ADDRESS, "Copy Address");
 			AppendMenu(hCopyMenu, MF_POPUP, (UINT_PTR)hCopySubMenu , "Copy As...");
 			int x, y;
-			x = LOWORD(lParam);
-			y = HIWORD(lParam);
+			x = GET_X_LPARAM(lParam);
+			y = GET_Y_LPARAM(lParam);
 			TrackPopupMenu(hCopyMenu, TPM_LEFTALIGN | TPM_TOPALIGN | TPM_LEFTBUTTON | TPM_NOANIMATION, x, y, 0, hCtl, NULL);
 			DestroyMenu(hCopyMenu);
 		}
