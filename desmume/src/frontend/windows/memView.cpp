@@ -1280,17 +1280,20 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 
 	case WM_KEYDOWN:
 		{
-			s16 offset = 0, offset2 = 0;
+			s16 offset = 0;
 			const u8 step[] = {1, 2, 4};
 			MemViewRegion& region = s_memoryRegions[wnd->region];
+			HWAddressType addrMin = (region.hardwareAddress) & 0xFFFFFF00;
+			HWAddressType addrMax = (region.hardwareAddress + region.size - 1) & 0xFFFFFF00;
+			HWAddressType addrSelMax = addrMax + 0xFF;
 			switch (wParam) 
             { 
                 case VK_LEFT:	offset -= step[wnd->viewMode]; break;
 				case VK_RIGHT:	offset += step[wnd->viewMode]; break;
 				case VK_UP:		offset -= 16; break;
 				case VK_DOWN:	offset += 16; break;
-				case VK_PRIOR:	offset -= 0x100; offset2 -= 0x100; break;
-				case VK_NEXT:	offset += 0x100; offset2 += 0x100; break;
+				case VK_PRIOR:	offset -= 0x100; break;
+				case VK_NEXT:	offset += 0x100; break;
 
 				case VK_HOME:
 					if (GetKeyState(VK_CONTROL) & 0x8000)
@@ -1312,7 +1315,7 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 				case VK_END:
 					if (GetKeyState(VK_CONTROL) & 0x8000)
 					{
-						wnd->address = (region.hardwareAddress + region.size - 0x100);
+						wnd->address = (region.hardwareAddress + region.size - 1) & 0xFFFFFF00;
 						wnd->selAddress = wnd->address;
 						wnd->selPart = 0;
 						wnd->selNewVal = 0x00000000;
@@ -1337,23 +1340,20 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 					return 0;
 			}
 
-			s64 addr = (s64)wnd->selAddress + offset;
-			s64 addr2 = (s64)wnd->address + offset2;
-
-			if (addr < region.hardwareAddress) return 1;
-			if (addr2 < region.hardwareAddress) return 1;
-			if (addr >= (region.hardwareAddress + region.size)) return 1;
-			if (addr2 >= (region.hardwareAddress + region.size)) return 1;
-
-			wnd->address = (u32)addr2;
-			wnd->selAddress = (u32)addr;
+			if (offset < 0 && addrMin - offset > wnd->selAddress)
+				wnd->selAddress = addrMin + (wnd->selAddress & 0xF);
+			else if (offset > 0 && addrSelMax - offset < wnd->selAddress)
+				wnd->selAddress = addrMax + 0xF0 + (wnd->selAddress & 0xF);
+			else wnd->selAddress += offset;
 			wnd->selPart = 0;
 			wnd->selNewVal = 0x00000000;
 
-			if (wnd->selAddress < wnd->address)
-				wnd->address -= 16;
-			if (wnd->selAddress >= wnd->address + 0x100)
-				wnd->address += 16;
+			if (wnd->address < addrMax && wnd->selAddress > wnd->address + 0xFF || wnd->selAddress < wnd->address)
+			{
+				if (offset < 0 && addrMin - offset > wnd->address) wnd->address = addrMin;
+				else if (offset > 0 && addrMax - offset < wnd->address) wnd->address = addrMax;
+				else wnd->address += offset;
+			}
 			
 			SetScrollPos(hCtl, SB_VERT, (wnd->address - region.hardwareAddress) >> 4, TRUE);
 			wnd->Refresh(TRUE);
@@ -1428,24 +1428,13 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 			MemViewRegion& region = s_memoryRegions[wnd->region];
 			HWAddressType addrMin = (region.hardwareAddress) & 0xFFFFFF00;
 			HWAddressType addrMax = (region.hardwareAddress + region.size - 1) & 0xFFFFFF00;
-
+			int offset = 0;
 			switch(LOWORD(wParam))
 			{
-			case SB_LINEUP:
-				wnd->address = (u32)max((int)addrMin, ((int)wnd->address - 0x10));
-				break;
-
-			case SB_LINEDOWN:
-				wnd->address = min((u32)addrMax, (wnd->address + 0x10));
-				break;
-
-			case SB_PAGEUP:
-				wnd->address = (u32)max((int)addrMin, ((int)wnd->address - 0x100));
-				break;
-
-			case SB_PAGEDOWN:
-				wnd->address = min((u32)addrMax, (wnd->address + 0x100));
-				break;
+			case SB_LINEUP:    offset -= 0x10; break;
+			case SB_LINEDOWN:  offset += 0x10; break;
+			case SB_PAGEUP:    offset -= 0x100; break;
+			case SB_PAGEDOWN:  offset += 0x100; break;
 
 			case SB_THUMBTRACK:
 			case SB_THUMBPOSITION:
@@ -1463,6 +1452,10 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 				break;
 			}
 
+			if (offset < 0 && addrMin - offset > wnd->address) wnd->address = addrMin;
+			else if (offset > 0 && addrMax - offset < wnd->address) wnd->address = addrMax;
+			else wnd->address += offset;
+
 			if((wnd->selAddress < wnd->address) || (wnd->selAddress >= (wnd->address + 0x100)))
 			{
 				wnd->sel = FALSE;
@@ -1471,7 +1464,7 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 				wnd->selNewVal = 0x00000000;
 			}
 
-			SetScrollPos(hCtl, SB_VERT, (((wnd->address - region.hardwareAddress) >> 4) & 0x000FFFFF), TRUE);
+			SetScrollPos(hCtl, SB_VERT, ((wnd->address - region.hardwareAddress) >> 4), TRUE);
 			wnd->Refresh(TRUE);
 		}
 		return 1;
