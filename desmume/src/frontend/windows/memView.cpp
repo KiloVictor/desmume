@@ -517,6 +517,8 @@ INT_PTR CALLBACK MemView_DlgProc(HWND hDlg, UINT uMsg, WPARAM wParam, LPARAM lPa
 						address |= ((ch - 'a' + 0xA) << shift);
 				}
 
+				address = address & (0xFFFFFFFF << wnd->viewMode);
+
 				MemViewRegion& region = s_memoryRegions[wnd->region];
 				if (wnd->region == MEMVIEW_ARM9 || wnd->region == MEMVIEW_ARM7)
 				{
