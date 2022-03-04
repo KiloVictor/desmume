@@ -1346,10 +1346,10 @@ LRESULT CALLBACK MemView_ViewBoxProc(HWND hCtl, UINT uMsg, WPARAM wParam, LPARAM
 
 			if (wnd->address < addrMax && wnd->selAddress > wnd->address + 0xFF || wnd->selAddress < wnd->address)
 			{
-				if (offset < 0 && addrMin + 16 > wnd->address) wnd->address = addrMin;
-				else if (offset > 0 && addrMax - 16 < wnd->address) wnd->address = addrMax;
-				else if (offset > 0) wnd->address += 16;
-				else if (offset < 0) wnd->address -= 16;
+				if (abs(offset) < 16) offset = offset < 0 ? -16 : 16;
+				if (offset < 0 && addrMin - offset > wnd->address) wnd->address = addrMin;
+				else if (offset > 0 && addrMax - offset < wnd->address) wnd->address = addrMax;
+				else wnd->address += offset;
 			}
 			
 			SetScrollPos(hCtl, SB_VERT, (wnd->address - region.hardwareAddress) >> 4, TRUE);
