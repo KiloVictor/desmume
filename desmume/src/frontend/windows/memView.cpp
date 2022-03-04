@@ -238,6 +238,7 @@ CMemView::CMemView(MemRegionType memRegion, u32 start_address)
 	}
 
 	PostInitialize();
+	Refresh(TRUE);
 }
 
 CMemView::~CMemView()
@@ -793,13 +794,6 @@ LRESULT MemView_ViewBoxPaint(CMemView* wnd, HWND hCtl, WPARAM wParam, LPARAM lPa
 	int 			startx;
 	int 			curx, cury;
 	int 			line;
-
-	// Defer rendering to later if we cannot access IDC_FULL_CHARS
-	if (GetDlgItem(wnd->hWnd, IDC_FULL_CHARS) == NULL)
-	{
-		SendMessage(hCtl, WM_PAINT, wParam, lParam);
-		return 0;
-	}
 
 	GetClientRect(hCtl, &rc);
 	w = (rc.right - rc.left);
